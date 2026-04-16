@@ -15,4 +15,4 @@ Problems faced:
 1. Tried chunking sentence wise but the overlap was off and chunks didn't make any sense . Solution: chunked using paragraphs
 2. retrieval is working, but the ranking is poor: for an obvious question like “What were Microsoft’s three core business priorities?”, the top result is an unrelated financial-notes chunk instead of the actual OUR PRIORITIES section. That suggests the issue is not parsing or chunking now, but similarity ranking. Solution: rebuild the Chroma collection using cosine distance instead of the default setup
 3. The vector search is returning semantically similar but wrong chunks for an obvious question.
-The actual answer exists in the document, but dense retrieval alone is not ranking it high enough.
+The actual answer exists in the document, but dense retrieval alone is not ranking it high enough. Solution: score each retrieved chunk for keyword overlap with the question.Boost chunks containing words like core,priorities,security,quality,AI innovation and rerank the top-k before returning them

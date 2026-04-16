@@ -6,6 +6,9 @@ from typing import Any
 from openai import OpenAI
 
 from app.services.prompt_builder import build_answer_prompt
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class AnswerService:

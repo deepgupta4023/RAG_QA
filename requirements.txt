@@ -7,3 +7,5 @@ pydantic
 python-dotenv
 numpy
 orjson
+openai
+python-dotenv
