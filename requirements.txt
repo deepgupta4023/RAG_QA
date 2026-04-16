@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+chromadb
+sentence-transformers
+pymupdf
+pydantic
+python-dotenv
+numpy
+orjson
