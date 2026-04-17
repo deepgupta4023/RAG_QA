@@ -56,8 +56,9 @@ def main() -> None:
         collection_name=COLLECTION_NAME,
         embed_model_name=EMBED_MODEL_NAME,
     )
-    chroma_service.reset_collection()
     print("Deleting old Data...")
+    chroma_service.reset_collection()
+    
 
     print(f"Using collection: {COLLECTION_NAME}")
 

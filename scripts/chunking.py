@@ -105,7 +105,7 @@ def flush_chunk(
 
     chunks.append(
         {
-            "chunk_id": f"chunk_{chunk_counter:04d}",
+            "chunk_id": f"chunk_{chunk_counter:04d}", #04d to ensure the id is atleast 4 digit long, padded by preceding zeros
             "page_start": page_start,
             "page_end": page_end,
             "section": current_section,

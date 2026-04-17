@@ -12,6 +12,6 @@ class SourceItem(BaseModel):
     section: str | None = None
 
 
-class AskResponse(BaseModel):
+class AnswerResponse(BaseModel):
     answer: str
     sources: list[SourceItem]

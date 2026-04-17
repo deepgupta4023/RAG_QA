@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 
-from app.schemas import AskRequest, AskResponse
+from app.schemas import AskRequest, AnswerResponse
 from app.services.answer_service import AnswerService
 from app.services.retriever import Retriever
 
@@ -15,8 +15,8 @@ def health() -> dict:
     return {"status": "ok"}
 
 
-@app.post("/ask", response_model=AskResponse)
-def ask(request: AskRequest) -> AskResponse:
+@app.post("/ask", response_model=AnswerResponse)
+def ask(request: AskRequest) -> AnswerResponse:
     question = request.question.strip()
     if not question:
         raise HTTPException(status_code=400, detail="Question cannot be empty")
@@ -28,7 +28,7 @@ def ask(request: AskRequest) -> AskResponse:
     )
 
     if not retrieved_chunks:
-        return AskResponse(
+        return AnswerResponse(
             answer="I could not find relevant context in the document.",
             sources=[],
         )
@@ -38,7 +38,7 @@ def ask(request: AskRequest) -> AskResponse:
         retrieved_chunks=retrieved_chunks,
     )
 
-    return AskResponse(
+    return AnswerResponse(
         answer=result["answer"],
         sources=result["sources"],
     )
