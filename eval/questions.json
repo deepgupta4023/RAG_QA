@@ -1,0 +1,52 @@
+[
+  {
+    "id": "q1",
+    "question": "Is Microsoft profitable?",
+    "expected_note": "Should answer yes, citing strong financial performance such as operating income and net income."
+  },
+  {
+    "id": "q2",
+    "question": "What was Microsoft's revenue in fiscal year 2025?",
+    "expected_note": "Should return revenue around $281.7 billion / $281,724 million."
+  },
+  {
+    "id": "q3",
+    "question": "What were Microsoft's three core business priorities?",
+    "expected_note": "Should mention security, quality, and AI innovation. This is a known harder retrieval case."
+  },
+  {
+    "id": "q4",
+    "question": "What is Microsoft Elevate?",
+    "expected_note": "Should describe it as an initiative combining technology, skills, research, and philanthropy so AI can benefit classrooms, communities, and causes."
+  },
+  {
+    "id": "q5",
+    "question": "How many LinkedIn members did Microsoft report?",
+    "expected_note": "Should mention LinkedIn having 1.2 billion members."
+  },
+  {
+    "id": "q6",
+    "question": "What remained in the share repurchase program as of June 30, 2025?",
+    "expected_note": "Should mention that $57.3 billion remained."
+  },
+  {
+    "id": "q7",
+    "question": "What was the dividend declared on June 10, 2025?",
+    "expected_note": "Should mention dividend per share of $0.83 and/or related payment details."
+  },
+  {
+    "id": "q8",
+    "question": "What were some of Microsoft's sustainability progress points?",
+    "expected_note": "Should mention examples like renewable energy procurement, carbon removal, clean water/sanitation, circular centers, or packaging recyclability."
+  },
+  {
+    "id": "q9",
+    "question": "What did Microsoft say about helping people earn AI credentials?",
+    "expected_note": "Should mention helping 20 million people earn AI credentials over the next two years."
+  },
+  {
+    "id": "q10",
+    "question": "What exact AI policy did Microsoft announce for all governments in Asia?",
+    "expected_note": "This should likely be unanswerable from the report and should ideally trigger a cautious answer."
+  }
+]
