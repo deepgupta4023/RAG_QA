@@ -188,49 +188,45 @@ pgvector is attractive when the app already uses Postgres. This project did not 
 
 ## Index type / distance choice
 
-The project uses a **persistent Chroma collection** configured with **cosine distance**.
+The vector store is a persistent local Chroma collection. On single-node Chroma, vector search uses an HNSW-based approximate nearest-neighbor index, and this project configures the collection with cosine distance via `metadata={"hnsw:space": "cosine"}`. That combination was chosen because the embedding model, `all-MiniLM-L6-v2`, is a text embedding model, and cosine similarity is the more natural fit for comparing text embeddings than leaving the collection on the default distance setting. 
 
-### Why cosine
-The embedding model `all-MiniLM-L6-v2` is a natural fit for cosine-style similarity. I initially tested the system without enough attention to this configuration, and correcting the collection similarity was one of the early retrieval fixes.
+### Why this vector store
 
-### Why this was not enough by itself
-Switching to cosine improved the setup but did **not** fully solve the ranking problem for exact strategy-oriented questions. That is why a lexical reranking layer was added on top of dense retrieval.
+I chose **Chroma** because this is a **small, local, single-document** RAG system and I wanted the simplest persistent setup that could store **documents, embeddings, and metadata together**. For this scale of project, Chroma reduced infrastructure overhead compared with running a separate vector database service, while still keeping the retrieval layer realistic enough for a production-style RAG prototype.
+
+### Why this index type
+
+I kept Chroma’s built-in **HNSW** approach rather than introducing a different vector backend because the corpus is small and the main goal was a simple, inspectable local system. HNSW is appropriate here because it gives fast approximate nearest-neighbor retrieval without forcing me to manage a lower-level index manually. Given the project size, the more important decision was not replacing the index structure, but choosing the correct **distance metric** and then improving ranking with a lightweight lexical reranker. 
+
+### Why cosine distance
+
+I initially found that dense retrieval alone was returning semantically similar but incorrect chunks for some strategic questions. Configuring the collection for **cosine distance** was the right baseline because the embeddings were normalized text embeddings. This improved the retrieval setup, although it did **not** fully solve ranking for exact strategy-oriented queries, which is why I later added a lexical reranking layer on top of dense retrieval. 
 
 ## Latency: cold vs warm
 
-### What I expect to dominate latency
-For a small local document like this, vector retrieval is not the main cost. The likely latency drivers are:
+In this project, **cold retrieval** means the first retrieval calls after startup, when the retriever, embedding model, and local Chroma collection have just been initialized. **Warm retrieval** means later retrievals after those components are already loaded and reusable in memory. Because this is a small local corpus, retrieval itself is relatively cheap; the answer-generation step is the slower part of the full question-answering path. 
 
-- query embedding
-- LLM answer generation
+### Measured retrieval timings
 
-### Cold latency
-Cold latency includes:
-- model loading
-- initial collection/client startup
-- first request overhead
+From the benchmark file:
 
-### Warm latency
-Warm latency should be lower because:
-- the embedding model is already in memory
-- the Chroma collection is already open
-- the API process is already running
+- **Cold retrieval**: 3 runs, min **21.01 ms**, max **91.27 ms**, mean **47.33 ms**, p50 **29.70 ms**, p95 **29.70 ms**. 
+- **Warm retrieval**: 30 runs, min **15.26 ms**, max **166.99 ms**, mean **33.83 ms**, p50 **30.98 ms**, p95 **38.34 ms**. 
 
-### How I would benchmark
-I would measure:
-- API startup time
-- first `/ask` request latency
-- median warm request latency
-- p95 warm request latency
-- retrieval-only time
-- answer-generation time
+These numbers show that retrieval itself is already fairly fast on this dataset. Warm retrieval is typically around **31 ms median**, which is consistent with a small, local single-document vector search pipeline. The occasional slower warm outlier pushes the max to **166.99 ms**, but the p95 of **38.34 ms** shows that most warm retrievals stayed well below that. 
+
+### Measured full answer timings
+
+From the same benchmark file:
+
+- **Cold full answer**: 3 runs, min **1346.73 ms**, max **3700.93 ms**, mean **2205.68 ms**, p50 **1569.38 ms**, p95 **1569.38 ms**. 
+- **Warm full answer**: 30 runs, min **1159.46 ms**, max **3303.66 ms**, mean **1898.01 ms**, p50 **1720.14 ms**, p95 **2806.00 ms**. 
+
+This shows that the main latency cost in the end-to-end system is **LLM answer generation**, not vector retrieval. Retrieval is measured in **tens of milliseconds**, while the full answer path is measured in roughly **1.2 to 3.3 seconds** depending on run conditions.
 
 ### How I would improve latency
-- preload models and clients on app startup
-- keep retrieved context small
-- cache frequent questions
-- reduce candidate count after reranking
-- optionally return fewer source chunks
+
+The first optimization is **startup reuse**: load the embedding model once, keep the Chroma client open, and reuse the retriever and answer service across requests. The second is **candidate reduction**: keep `initial_k` modest and pass only the strongest chunks to the answer model. The third is **caching**: cache repeated question embeddings and optionally cache full answers for repeated questions. The fourth is **asynchronous answer generation** or better request concurrency handling, because the LLM call is the clear bottleneck. Finally, I would only tune the vector index further if retrieval latency or recall became a real bottleneck, because the current measurements show retrieval is already cheap relative to generation.
 
 ## Setup
 
@@ -266,9 +262,11 @@ OPENAI_MODEL=gpt-4o-mini
 ## 4. Place the PDF
 
 Put the source file at:
+note:I have not included the file here as it would increase the size of this project unnecessarily,
+but you can download it from internet
 
 ```text
-data/raw/microsoft_2025_annual_report.pdf
+data/raw/2025_AnnualReport.pdf
 ```
 
 ## Run order
@@ -297,10 +295,17 @@ python scripts/ingest.py
 python scripts/test_retrieval.py "Is Microsoft profitable?" --k 5
 ```
 
-### Step 5: test retrieval + answer generation
+### Step 5.1: test retrieval + answer generation
 
 ```bash
 python scripts/test_answering.py "Is Microsoft profitable?"
+```
+
+
+### Step 5.2: Record Benchmark Timings
+
+```bash
+python scripts/benchmark_retrieval.py --include-answer
 ```
 
 ### Step 6: run the API
@@ -377,32 +382,7 @@ Treat financial tables separately instead of chunking them exactly like narrativ
 ### Third improvement: source filtering
 Return only the most relevant 2–3 sources instead of every retrieved chunk passed to the answerer.
 
-## Benchmarks / estimates
-I have not locked final benchmark numbers into this README yet. The right benchmark plan is:
 
-- ingestion time
-  - extraction
-  - chunking
-  - embedding
-  - upsert
-- request latency
-  - cold total
-  - warm median
-  - warm p95
-  - retrieval-only
-  - generation-only
-
-This is the first thing I would quantify next before final submission.
-
-## Loom demo plan
-
-The Loom should show:
-1. the chosen PDF
-2. one successful question
-3. one failing question
-4. the source chunks returned
-5. why Chroma was chosen
-6. why dense retrieval alone was not enough
 
 ## Summary
 
